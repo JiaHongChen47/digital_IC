@@ -19,7 +19,7 @@ git statue # 查看仓库状态
 git add <filename> # 将文件添加到暂存区，可以使用通配符*表示所有文件
 git commet -m "message，comment注释" <fimename> # 提交到本地库
 
-git clone 远程仓库网址 # 将远程仓库克隆到本地
+git clone 远程仓库网址 # 将远程仓库克隆到本地，当目的是克隆元层仓库时，不要git init在本地创建仓库，这样会因为合并两个没有共同祖先的仓库而导致无法merge
 git remote add 名称（比如origin、github，可自定义）远程仓库网址（SSH协议） # 将远程仓库与本地关联
 git remote -v # 查看与本地仓库关联的远程仓库
 git remote remove 需要删除的远程仓库名称 # 取消与远程仓库的关联
@@ -128,3 +128,71 @@ git merge origin/main
 
 
 
+# 设置默认上游分支
+
+当你执行 `git push` **不带任何参数**时，Git 的行为取决于以下两个因素：
+
+---
+
+### 1. **当前分支的上游配置（upstream branch）**
+- 如果你当前所在的分支（例如 `main` 或 `master`）已经设置了**上游分支**（即与某个远程仓库的分支关联），则 `git push` 会默认推送到该上游分支对应的远程仓库。
+- 可以通过以下命令检查当前分支的上游配置：
+  ```bash
+  git branch -vv
+  ```
+  输出示例：
+  ```plaintext
+  * main  a1b2c3d [github/main] 提交信息
+  ```
+  这里的 `[github/main]` 表示 `main` 分支的上游是 `github` 远程仓库的 `main` 分支。此时，`git push` 会推送到 `github` 远程。
+
+---
+
+### 2. **Git 的全局 `push.default` 配置**
+如果当前分支没有设置上游分支，Git 会根据 `push.default` 的配置决定行为。默认配置通常是 `simple`，即：
+- 若当前分支名与远程分支名匹配（例如本地 `main` 对应远程 `main`），且只有一个远程仓库（`origin`），则推送到 `origin`。
+- 若有多个远程仓库（如你的 `github` 和 `origin`），则 `git push` 会报错，要求你显式指定远程仓库和分支。
+
+---
+
+### 针对你的配置分析
+你的远程仓库有两个：`github` 和 `origin`。它们的区别是：
+- `github` 使用 **SSH 协议**（`git@github.com:...`）。
+- `origin` 使用 **HTTPS 协议**（`https://github.com/...`）。
+
+#### 情况一：如果当前分支已关联到某个远程
+- 例如，如果分支的上游是 `github/main`，则 `git push` 推送到 `github`。
+- 如果分支的上游是 `origin/main`，则 `git push` 推送到 `origin`。
+
+#### 情况二：如果当前分支未关联上游
+- Git 会报错，要求你明确指定远程和分支，例如：
+  ```bash
+  fatal: The current branch main has no upstream branch.
+  To push the current branch and set the remote as upstream, use:
+    git push --set-upstream github main   # 推送到 github
+    或
+    git push --set-upstream origin main   # 推送到 origin
+  ```
+
+---
+
+### 如何确保推送到指定远程？
+#### 1. **显式指定远程和分支（推荐）**
+```bash
+git push github main    # 推送到 github 的 main 分支
+git push origin main    # 推送到 origin 的 main 分支
+```
+
+#### 2. **设置默认上游分支**
+如果希望当前分支默认推送到某个远程（例如 `github`），可以运行：
+```bash
+git push -u github main
+```
+之后直接执行 `git push` 就会默认推送到 `github`。
+
+---
+
+### 总结
+- **默认推送的目标取决于当前分支的上游配置**。通过 `git branch -vv` 可以查看上游关联。
+- 如果未设置上游且存在多个远程，`git push` 会报错，要求你明确指定远程。
+- 如果要固定推送到 `github` 或 `origin`，建议显式指定远程（如 `git push github main`）或提前设置上游分支。
